@@ -1,3 +1,4 @@
+import os
 import discord
 from discord.ext import commands
 import random
@@ -8,8 +9,8 @@ from threading import Thread
 # ⚙️ CENTRAL DE CONFIGURAÇÃO E TEXTOS DO BOT (EDITE AQUI)
 # ==============================================================================
 
-# 🔑 CREDENCIAIS E APLICAÇÃO
-TOKEN = "SEU_TOKEN_AQUI"
+# 🔑 CREDENCIAIS E APLICAÇÃO (Leitura segura via Variáveis de Ambiente)
+TOKEN = os.getenv("TOKEN", "SEU_TOKEN_AQUI")
 PREFIXO = "!"
 STATUS_JOGO = "🏆 Ultimate Rift | !ajuda"
 
