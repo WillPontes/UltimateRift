@@ -1,6 +1,8 @@
 import discord
 from discord.ext import commands
 import random
+from flask import Flask
+from threading import Thread
 
 # ==============================================================================
 # ⚙️ CENTRAL DE CONFIGURAÇÃO E TEXTOS DO BOT (EDITE AQUI)
@@ -84,7 +86,24 @@ ROSTERS = {
 }
 
 # ==============================================================================
-# 🚨 LÓGICA DO BOT (NÃO PRECISA MEXER ABAIXO DESTA LINHA)
+# 🌐 SERVIDOR WEB FAKE (KEEP ALIVE PARA RENDER / WEB SERVICE)
+# ==============================================================================
+
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot Ultimate Rift rodando 24/7!"
+
+def run_web():
+    app.run(host='0.0.0.0', port=8080)
+
+def keep_alive():
+    t = Thread(target=run_web)
+    t.start()
+
+# ==============================================================================
+# 🚨 LÓGICA DO BOT
 # ==============================================================================
 
 intents = discord.Intents.default()
@@ -278,4 +297,6 @@ async def lado(ctx):
     res = random.choice(["BLUE SIDE 🔵 (Lado Azul)", "RED SIDE 🔴 (Lado Vermelho)"])
     await ctx.send(f"🎲 Sorteio de lado: **{res}**")
 
+# Executa o servidor web fake junto com o bot
+keep_alive()
 bot.run(TOKEN)
