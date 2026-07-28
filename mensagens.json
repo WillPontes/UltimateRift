@@ -1,0 +1,34 @@
+{
+  "status_jogo": "🏆 Ultimate Rift | !ajuda",
+  "link_tabela": "https://challonge.com/seu-campeonato",
+  "foto_boas_vindas": "https://i.imgur.com/8N7aWkM.png",
+  "nome_canal_boas_vindas": "chat-geral-equipes",
+  "nome_canal_resultados": "chaveamento-e-tabela",
+  "nome_canal_suporte": "chamados-juiz",
+
+  "boas_vindas_titulo": "⚔️ Bem-vindo(a) ao Ultimate Rift, {membro}!",
+  "boas_vindas_texto": "Olá {membro_mention}! Seja bem-vindo ao servidor oficial do campeonato.\n\n📌 **Primeiros Passos:**\n• Digite `!tabela` para consultar o chaveamento.\n• Digite `!regras` para ver o regulamento oficial.\n• Digite `!ajuda` para ver os comandos do bot.",
+  "boas_vindas_rodape": "Ultimate Rift • Campeonato de LoL",
+
+  "saida_titulo": "👋 Um jogador saiu do servidor",
+  "saida_texto": "**{membro_display}** (`{membro_name}`) deixou o campeonato.",
+
+  "regras_titulo": "📜 Regulamento Oficial do Torneio",
+  "regras_texto": "**1. Pontualidade:** Tolerância de 10 minutos após o horário marcado.\n**2. Pausas:** Cada equipe tem direito a até 10 minutos de pausa por partida.\n**3. Comprovação:** O capitão vencedor deve enviar a print do fim do jogo.\n**4. Conduta:** Respeito obrigatório com juízes e adversários.",
+
+  "pausa_titulo": "⏱️ Regras de Pausa (Pause)",
+  "pausa_texto": "• **Tempo Máximo:** 10 minutos acumulados por equipe.\n• **Motivos Válidos:** Desconexão técnica ou problema de equipamento.\n• **Aviso:** Deve-se informar no chat `/all` o motivo da pausa imediatamente.",
+
+  "votos_necessarios": 6,
+  "botao_azul_rotulo": "Vitória Time Azul 🔵",
+  "botao_vermelho_rotulo": "Vitória Time Vermelho 🔴",
+
+  "votacao_titulo": "⚔️ Validação de Resultado da Partida",
+  "votacao_texto": "**Lado Azul 🔵:** {time_azul}\n**Lado Vermelho 🔴:** {time_vermelho}\n\n📌 *Clique no botão do time que venceu para confirmar.*\nSão necessários **{votos_necessarios} votos** no total para homologar a partida.\n\n📊 **Placar da Votação ({total_votos}/{votos_necessarios}):**\n• Votos no {time_azul} 🔵: **{votos_azul}**\n• Votos no {time_vermelho} 🔴: **{votos_vermelho}**",
+
+  "resultado_oficial_titulo": "🏆 RESULTADO OFICIAL DA PARTIDA",
+  "resultado_oficial_texto": "👑 **VENCEDOR:** {vencedor} ({lado_vencedor})\n💀 **DERROTADO:** {perdedor}\n\n✨ *A vitória foi validada pelos próprios jogadores por votação ({total_votos} votos).*",
+
+  "juiz_solicitado_titulo": "🚨 Chamado de Suporte / Juiz Solicitado",
+  "juiz_solicitado_texto": "👤 **Solicitante:** {autor_mention} (`{autor_name}`)\n📌 **Canal Origem:** {canal_mention}\n💬 **Motivo:** {motivo}\n\n⏰ *A equipe de arbitragem foi notificada e atenderá em breve.*"
+}
