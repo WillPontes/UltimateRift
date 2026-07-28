@@ -25,10 +25,54 @@
 
   "votacao_titulo": "⚔️ Validação de Resultado da Partida",
   "votacao_texto": "**Lado Azul 🔵:** {time_azul}\n**Lado Vermelho 🔴:** {time_vermelho}\n\n📌 *Clique no botão do time que venceu para confirmar.*\nSão necessários **{votos_necessarios} votos** no total para homologar a partida.\n\n📊 **Placar da Votação ({total_votos}/{votos_necessarios}):**\n• Votos no {time_azul} 🔵: **{votos_azul}**\n• Votos no {time_vermelho} 🔴: **{votos_vermelho}**",
+  "votacao_concluida_titulo": "✅ Votação Concluída e Confirmada!",
 
   "resultado_oficial_titulo": "🏆 RESULTADO OFICIAL DA PARTIDA",
   "resultado_oficial_texto": "👑 **VENCEDOR:** {vencedor} ({lado_vencedor})\n💀 **DERROTADO:** {perdedor}\n\n✨ *A vitória foi validada pelos próprios jogadores por votação ({total_votos} votos).*",
 
   "juiz_solicitado_titulo": "🚨 Chamado de Suporte / Juiz Solicitado",
-  "juiz_solicitado_texto": "👤 **Solicitante:** {autor_mention} (`{autor_name}`)\n📌 **Canal Origem:** {canal_mention}\n💬 **Motivo:** {motivo}\n\n⏰ *A equipe de arbitragem foi notificada e atenderá em breve.*"
+  "juiz_solicitado_texto": "👤 **Solicitante:** {autor_mention} (`{autor_name}`)\n📌 **Canal Origem:** {canal_mention}\n💬 **Motivo:** {motivo}\n\n⏰ *A equipe de arbitragem foi notificada e atenderá em breve.*",
+  "juiz_solicitado_ping": "🔔 @here **Atenção Juízes/Staff!** Novo chamado aberto:",
+  "juiz_solicitado_confirmacao": "✅ Chamado enviado para a arbitragem! Um juiz atenderá em breve no canal {canal_mention}.",
+  "juiz_solicitado_rodape": "Solicitado por {autor_display}",
+
+  "cadastrar_time_erro_sintaxe": "❌ Uso correto: `!cadastrartime Nome do Time | Nick1#TAG, Nick2#TAG, Nick3#TAG...`",
+  "cadastrar_time_sucesso_titulo": "✅ Equipe Cadastrada: {nome_time}",
+  "cadastrar_time_campo_elenco": "👥 Elenco registrado",
+  "cadastrar_time_campo_opgg": "🔍 OP.GG Multi-Search",
+  "cadastrar_time_opgg_texto": "[👉 Clique aqui para abrir a análise da equipe no OP.GG]({opgg_link})",
+  "elenco_vazio_texto": "Nenhum jogador informado",
+
+  "time_nao_encontrado_texto": "❌ Time `{nome_time}` não encontrado no sistema. Admins podem cadastrar via `!cadastrartime Nome | Nick1#TAG, Nick2#TAG`.",
+  "time_consultar_titulo": "🛡️ Elenco • {nome_time}",
+  "time_campo_integrantes": "👥 Integrantes / Nicks",
+  "time_campo_opgg": "🔍 OP.GG Multi-Search",
+  "time_opgg_texto": "[👉 Abrir Multi-Search da Equipe]({opgg_link})",
+  "time_elenco_indefinido_texto": "Elenco a ser definido pelo capitão.",
+
+  "checkin_ja_realizado_texto": "⚠️ O **{nome_time}** já realizou o check-in!",
+  "checkin_sucesso_texto": "✅ Check-in confirmado para a equipe **{nome_time}**!",
+  "checkins_vazio_texto": "📋 Nenhum time fez check-in ainda.",
+  "checkins_lista_titulo": "📋 **Times com Check-in Realizado:**\n{lista}",
+  "limpar_checkins_sucesso_texto": "🧹 Lista de check-ins zerada com sucesso!",
+
+  "lado_azul_texto": "BLUE SIDE 🔵 (Lado Azul)",
+  "lado_vermelho_texto": "RED SIDE 🔴 (Lado Vermelho)",
+  "lado_sorteio_texto": "🎲 Sorteio de lado: **{resultado}**",
+
+  "tabela_mensagem_texto": "📊 **Chaveamento Oficial:** {link_tabela}",
+
+  "anunciar_erro_sintaxe": "❌ Uso correto: `!anunciar #canal Titulo | Mensagem`",
+  "anunciar_titulo_padrao": "📢 Comunicado Oficial",
+  "anunciar_sucesso_texto": "✅ Anúncio postado em {canal_mention}!",
+
+  "reloadmsgs_sucesso_texto": "🔄 Mensagens do `mensagens.json` recarregadas com sucesso!",
+
+  "ajuda_titulo": "🤖 Comandos da Arena • Ultimate Rift",
+  "ajuda_partidas_titulo": "⚔️ Gestão de Partidas",
+  "ajuda_partidas_texto": "• `!resultado <TimeAzul> <TimeVermelho>` - Inicia votação de resultado\n• `!checkin <Nome do Time>` - Confirma presença\n• `!time <Nome do Time>` - Ver integrantes e link do OP.GG\n• `!lado` - Sorteio de Blue/Red Side\n• `!juiz <motivo>` - Solicita atendimento de um juiz/staff",
+  "ajuda_info_titulo": "📊 Informações",
+  "ajuda_info_texto": "• `!tabela` - Link do chaveamento\n• `!regras` - Regulamento oficial\n• `!pausa` - Regras de pause",
+  "ajuda_admin_titulo": "🛠️ Administração & Staff",
+  "ajuda_admin_texto": "• `!cadastrartime Nome | Nick1#TAG, Nick2#TAG...` - Cadastra equipe & OP.GG\n• `!checkins` - Lista times confirmados\n• `!limparcheckins` - Reseta lista de presenciais\n• `!anunciar #canal Titulo | Texto` - Posta comunicado\n• `!reloadmsgs` - Atualiza frases do `mensagens.json`"
 }

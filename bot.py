@@ -15,7 +15,7 @@ MENSAGENS_FILE = "mensagens.json"
 DATA_FILE = "data.json"
 
 def carregar_mensagens():
-    """Carrega as frases do bot a partir do mensagens.json"""
+    """Carrega todas as frases e configurações de texto do bot a partir do mensagens.json"""
     if os.path.exists(MENSAGENS_FILE):
         try:
             with open(MENSAGENS_FILE, "r", encoding="utf-8") as f:
@@ -35,7 +35,7 @@ def carregar_dados():
     return {"checkins": [], "rosters": {}}
 
 def salvar_dados(dados):
-    """Salva as informações no data.json para persistência"""
+    """Salva as informações no data.json para persistência permanentemente"""
     try:
         with open(DATA_FILE, "w", encoding="utf-8") as f:
             json.dump(dados, f, ensure_ascii=False, indent=2)
@@ -76,20 +76,22 @@ def keep_alive():
 def gerar_opgg_multisearch(nicks_str_ou_lista, regiao="br"):
     """
     Gera o link de Multi-Search do OP.GG para uma lista de Nick#TAG ou nomes de invocadores.
+    Suporta nicks separados por vírgula ou quebras de linha.
     Exemplo: Player1#BR1, Player2#BR1 -> https://www.op.gg/multisearch/br?summoners=Player1%23BR1%2CPlayer2%23BR1
     """
     if isinstance(nicks_str_ou_lista, str):
-        # Separa por vírgula ou quebra de linha
-        nicks = [n.strip() for n in nicks_str_ou_lista.replace("\n", ",").split(",") if n.strip()]
+        bruto = nicks_str_ou_lista.replace("\r\n", ",").replace("\n", ",")
+        nicks = [n.strip() for n in bruto.split(",") if n.strip()]
     else:
-        nicks = [n.strip() for n in nicks_str_ou_lista if n.strip()]
+        nicks = [str(n).strip() for n in nicks_str_ou_lista if str(n).strip()]
 
     if not nicks:
-        return None
+        return None, []
 
     encoded_nicks = [urllib.parse.quote(nick) for nick in nicks]
     summoners_param = "%2C".join(encoded_nicks)
-    return f"https://www.op.gg/multisearch/{regiao}?summoners={summoners_param}"
+    link = f"https://www.op.gg/multisearch/{regiao}?summoners={summoners_param}"
+    return link, nicks
 
 # ==============================================================================
 # 🚨 LÓGICA E EVENTOS DO BOT
@@ -114,8 +116,8 @@ async def on_member_join(member):
     canal = discord.utils.get(member.guild.text_channels, name=canal_nome)
     if canal:
         embed = discord.Embed(
-            title=MSGS.get("boas_vindas_titulo", "").format(membro=member.display_name),
-            description=MSGS.get("boas_vindas_texto", "").format(membro_mention=member.mention),
+            title=MSGS.get("boas_vindas_titulo", "⚔️ Bem-vindo(a), {membro}!").format(membro=member.display_name),
+            description=MSGS.get("boas_vindas_texto", "Bem-vindo {membro_mention}!").format(membro_mention=member.mention),
             color=discord.Color.gold()
         )
         embed.set_thumbnail(url=member.display_avatar.url)
@@ -132,7 +134,7 @@ async def on_member_remove(member):
     if canal:
         embed = discord.Embed(
             title=MSGS.get("saida_titulo", "👋 Jogador Saiu"),
-            description=MSGS.get("saida_texto", "").format(membro_display=member.display_name, membro_name=member.name),
+            description=MSGS.get("saida_texto", "**{membro_display}** saiu.").format(membro_display=member.display_name, membro_name=member.name),
             color=discord.Color.red()
         )
         embed.set_thumbnail(url=member.display_avatar.url)
@@ -179,7 +181,7 @@ class VotacaoResultadoView(discord.ui.View):
                 vencedor, perdedor, lado = self.time_vermelho, self.time_azul, "Vermelho 🔴"
 
             embed_fim = self.atualizar_embed()
-            embed_fim.title = "✅ Votação Concluída e Confirmada!"
+            embed_fim.title = MSGS.get("votacao_concluida_titulo", "✅ Votação Concluída e Confirmada!")
             embed_fim.color = discord.Color.green()
             await interaction.response.edit_message(embed=embed_fim, view=self)
 
@@ -220,18 +222,18 @@ async def iniciar_resultado(ctx, time_azul: str, time_vermelho: str):
 @commands.has_permissions(administrator=True)
 async def cadastrar_time(ctx, *, conteudo: str):
     """
-    Sintaxe: !cadastrartime Nome do Time | Nick1#BR1, Nick2#BR1, Nick3#BR1, Nick4#BR1, Nick5#BR1
+    Sintaxe: !cadastrartime Nome do Time | Nick1#TAG, Nick2#TAG... (suporta quebras de linha)
     """
     if "|" not in conteudo:
-        await ctx.send("❌ Uso correto: `!cadastrartime Nome do Time | Nick1#BR1, Nick2#BR1, Nick3#BR1, Nick4#BR1, Nick5#BR1`")
+        msg_erro = MSGS.get("cadastrar_time_erro_sintaxe", "❌ Uso correto: `!cadastrartime Nome do Time | Nick1#TAG, Nick2#TAG...`")
+        await ctx.send(msg_erro)
         return
 
     nome_time_raw, nicks_raw = conteudo.split("|", 1)
     nome_time = nome_time_raw.strip()
     key_time = nome_time.lower()
 
-    nicks_lista = [n.strip() for n in nicks_raw.split(",") if n.strip()]
-    opgg_link = gerar_opgg_multisearch(nicks_lista)
+    opgg_link, nicks_lista = gerar_opgg_multisearch(nicks_raw)
 
     DADOS_BOT["rosters"][key_time] = {
         "nome": nome_time,
@@ -240,11 +242,18 @@ async def cadastrar_time(ctx, *, conteudo: str):
     }
     salvar_dados(DADOS_BOT)
 
-    embed = discord.Embed(title=f"✅ Equipe Cadastrada: {nome_time}", color=discord.Color.green())
+    titulo_embed = MSGS.get("cadastrar_time_sucesso_titulo", "✅ Equipe Cadastrada: {nome_time}").format(nome_time=nome_time)
+    embed = discord.Embed(title=titulo_embed, color=discord.Color.green())
+    
     jogadores_fmt = "\n".join([f"• {j}" for j in nicks_lista])
-    embed.add_field(name="👥 Elenco", value=jogadores_fmt if jogadores_fmt else "Nenhum jogador informado", inline=False)
+    campo_elenco_nome = MSGS.get("cadastrar_time_campo_elenco", "👥 Elenco registrado")
+    elenco_vazio_msg = MSGS.get("elenco_vazio_texto", "Nenhum jogador informado")
+    embed.add_field(name=campo_elenco_nome, value=jogadores_fmt if jogadores_fmt else elenco_vazio_msg, inline=False)
+    
     if opgg_link:
-        embed.add_field(name="🔍 OP.GG Multi-Search", value=f"[👉 Clique aqui para abrir a análise da equipe no OP.GG]({opgg_link})", inline=False)
+        campo_opgg_nome = MSGS.get("cadastrar_time_campo_opgg", "🔍 OP.GG Multi-Search")
+        texto_opgg = MSGS.get("cadastrar_time_opgg_texto", "[👉 Abrir OP.GG]({opgg_link})").format(opgg_link=opgg_link)
+        embed.add_field(name=campo_opgg_nome, value=texto_opgg, inline=False)
 
     await ctx.send(embed=embed)
 
@@ -256,21 +265,32 @@ async def consultar_time(ctx, *, nome_time: str):
         info = DADOS_BOT["rosters"][key_time]
         nome = info.get("nome", nome_time.upper())
         jogadores = info.get("jogadores", [])
-        opgg_link = info.get("opgg_link") or gerar_opgg_multisearch(jogadores)
+        opgg_link = info.get("opgg_link")
+        if not opgg_link and jogadores:
+            opgg_link, _ = gerar_opgg_multisearch(jogadores)
 
-        embed = discord.Embed(title=f"🛡️ Elenco • {nome}", color=discord.Color.blue())
+        titulo_embed = MSGS.get("time_consultar_titulo", "🛡️ Elenco • {nome_time}").format(nome_time=nome)
+        embed = discord.Embed(title=titulo_embed, color=discord.Color.blue())
+        
         if jogadores:
             jogadores_fmt = "\n".join([f"• {j}" for j in jogadores])
-            embed.add_field(name="👥 Integrantes / Nicks", value=jogadores_fmt, inline=False)
+            campo_integrantes = MSGS.get("time_campo_integrantes", "👥 Integrantes / Nicks")
+            embed.add_field(name=campo_integrantes, value=jogadores_fmt, inline=False)
         else:
-            embed.description = "Elenco a ser definido pelo capitão."
+            embed.description = MSGS.get("time_elenco_indefinido_texto", "Elenco a ser definido pelo capitão.")
 
         if opgg_link:
-            embed.add_field(name="🔍 OP.GG Multi-Search", value=f"[👉 Abrir Multi-Search da Equipe]({opgg_link})", inline=False)
+            campo_opgg = MSGS.get("time_campo_opgg", "🔍 OP.GG Multi-Search")
+            texto_opgg = MSGS.get("time_opgg_texto", "[👉 Abrir Multi-Search da Equipe]({opgg_link})").format(opgg_link=opgg_link)
+            embed.add_field(name=campo_opgg, value=texto_opgg, inline=False)
 
         await ctx.send(embed=embed)
     else:
-        await ctx.send(f"❌ Time `{nome_time}` não encontrado no sistema. Admins podem cadastrar via `!cadastrartime Nome | Nick1#TAG, Nick2#TAG`.")
+        msg_nao_encontrado = MSGS.get(
+            "time_nao_encontrado_texto", 
+            "❌ Time `{nome_time}` não encontrado no sistema."
+        ).format(nome_time=nome_time)
+        await ctx.send(msg_nao_encontrado)
 
 # --- CHECK-IN PERSISTENTE ---
 
@@ -278,29 +298,34 @@ async def consultar_time(ctx, *, nome_time: str):
 async def checkin(ctx, *, nome_time: str):
     nome_limpo = nome_time.strip().lower()
     if nome_limpo in DADOS_BOT["checkins"]:
-        await ctx.send(f"⚠️ O **{nome_time.upper()}** já realizou o check-in!")
+        msg_ja = MSGS.get("checkin_ja_realizado_texto", "⚠️ O **{nome_time}** já realizou o check-in!").format(nome_time=nome_time.upper())
+        await ctx.send(msg_ja)
         return
 
     DADOS_BOT["checkins"].append(nome_limpo)
     salvar_dados(DADOS_BOT)
-    await ctx.send(f"✅ Check-in confirmado para a equipe **{nome_time.upper()}**!")
+    msg_sucesso = MSGS.get("checkin_sucesso_texto", "✅ Check-in confirmado para a equipe **{nome_time}**!").format(nome_time=nome_time.upper())
+    await ctx.send(msg_sucesso)
 
 @bot.command(name="checkins")
 @commands.has_permissions(administrator=True)
 async def ver_checkins(ctx):
     checkins = DADOS_BOT.get("checkins", [])
     if not checkins:
-        await ctx.send("📋 Nenhum time fez check-in ainda.")
+        msg_vazio = MSGS.get("checkins_vazio_texto", "📋 Nenhum time fez check-in ainda.")
+        await ctx.send(msg_vazio)
         return
     lista = "\n".join([f"• {t.title()}" for t in checkins])
-    await ctx.send(f"📋 **Times com Check-in Realizado:**\n{lista}")
+    msg_lista = MSGS.get("checkins_lista_titulo", "📋 **Times com Check-in Realizado:**\n{lista}").format(lista=lista)
+    await ctx.send(msg_lista)
 
 @bot.command(name="limparcheckins")
 @commands.has_permissions(administrator=True)
 async def limpar_checkins(ctx):
     DADOS_BOT["checkins"] = []
     salvar_dados(DADOS_BOT)
-    await ctx.send("🧹 Lista de check-ins zerada com sucesso!")
+    msg_limpar = MSGS.get("limpar_checkins_sucesso_texto", "🧹 Lista de check-ins zerada com sucesso!")
+    await ctx.send(msg_limpar)
 
 # --- SISTEMA DE CHAMADOS / JUIZ ---
 
@@ -320,11 +345,18 @@ async def chamar_juiz(ctx, *, motivo: str = "Sem motivo especificado"):
         description=texto_chamado,
         color=discord.Color.red()
     )
-    embed.set_footer(text=f"Solicitado por {ctx.author.display_name}")
+    rodape_texto = MSGS.get("juiz_solicitado_rodape", "Solicitado por {autor_display}").format(autor_display=ctx.author.display_name)
+    embed.set_footer(text=rodape_texto)
 
-    msg_suporte = await canal_suporte.send(content="🔔 @here **Atenção Juízes/Staff!** Novo chamado aberto:", embed=embed)
+    ping_texto = MSGS.get("juiz_solicitado_ping", "🔔 @here **Atenção Juízes/Staff!** Novo chamado aberto:")
+    await canal_suporte.send(content=ping_texto, embed=embed)
+    
     if canal_suporte != ctx.channel:
-        await ctx.send(f"✅ Chamado enviado para a arbitragem! Um juiz atenderá em breve no canal {canal_suporte.mention}.")
+        msg_confirmacao = MSGS.get(
+            "juiz_solicitado_confirmacao", 
+            "✅ Chamado enviado para a arbitragem no canal {canal_mention}."
+        ).format(canal_mention=canal_suporte.mention)
+        await ctx.send(msg_confirmacao)
 
 # --- COMANDOS DE INFORMAÇÕES E RECARGA ---
 
@@ -332,13 +364,17 @@ async def chamar_juiz(ctx, *, motivo: str = "Sem motivo especificado"):
 @commands.has_permissions(administrator=True)
 async def anunciar(ctx, canal: discord.TextChannel, *, conteudo: str):
     try:
-        titulo, texto = conteudo.split("|", 1) if "|" in conteudo else ("📢 Comunicado Oficial", conteudo)
+        titulo_padrao = MSGS.get("anunciar_titulo_padrao", "📢 Comunicado Oficial")
+        titulo, texto = conteudo.split("|", 1) if "|" in conteudo else (titulo_padrao, conteudo)
         embed = discord.Embed(title=titulo.strip(), description=texto.strip(), color=discord.Color.blue())
         embed.set_footer(text=f"Enviado por {ctx.author.display_name}")
         await canal.send(embed=embed)
-        await ctx.send(f"✅ Anúncio postado em {canal.mention}!")
+        
+        msg_sucesso = MSGS.get("anunciar_sucesso_texto", "✅ Anúncio postado em {canal_mention}!").format(canal_mention=canal.mention)
+        await ctx.send(msg_sucesso)
     except Exception:
-        await ctx.send("❌ Uso correto: `!anunciar #canal Titulo | Mensagem`")
+        msg_erro = MSGS.get("anunciar_erro_sintaxe", "❌ Uso correto: `!anunciar #canal Titulo | Mensagem`")
+        await ctx.send(msg_erro)
 
 @bot.command(name="reloadmsgs")
 @commands.has_permissions(administrator=True)
@@ -347,35 +383,27 @@ async def recarregar_mensagens(ctx):
     MSGS = carregar_mensagens()
     STATUS_JOGO = MSGS.get("status_jogo", "🏆 Ultimate Rift | !ajuda")
     await bot.change_presence(activity=discord.Game(name=STATUS_JOGO))
-    await ctx.send("🔄 Mensagens do `mensagens.json` recarregadas com sucesso!")
+    msg_sucesso = MSGS.get("reloadmsgs_sucesso_texto", "🔄 Mensagens do `mensagens.json` recarregadas com sucesso!")
+    await ctx.send(msg_sucesso)
 
 @bot.command(name="ajuda", aliases=["help"])
 async def ajuda(ctx):
-    embed = discord.Embed(title="🤖 Comandos da Arena • Ultimate Rift", color=discord.Color.purple())
+    embed = discord.Embed(title=MSGS.get("ajuda_titulo", "🤖 Comandos da Arena • Ultimate Rift"), color=discord.Color.purple())
+    
     embed.add_field(
-        name="⚔️ Gestão de Partidas",
-        value="• `!resultado <TimeAzul> <TimeVermelho>` - Inicia votação de resultado\n"
-              "• `!checkin <Nome do Time>` - Confirms presença\n"
-              "• `!time <Nome do Time>` - Ver integrantes e link do OP.GG\n"
-              "• `!lado` - Sorteio de Blue/Red Side\n"
-              "• `!juiz <motivo>` - Solicita atendimento de um juiz/staff",
+        name=MSGS.get("ajuda_partidas_titulo", "⚔️ Gestão de Partidas"),
+        value=MSGS.get("ajuda_partidas_texto", "• `!resultado` | `!checkin` | `!time` | `!lado` | `!juiz`"),
         inline=False
     )
     embed.add_field(
-        name="📊 Informações",
-        value=f"• `!tabela` - Link do chaveamento\n"
-              f"• `!regras` - Regulamento oficial\n"
-              f"• `!pausa` - Regras de pause",
+        name=MSGS.get("ajuda_info_titulo", "📊 Informações"),
+        value=MSGS.get("ajuda_info_texto", "• `!tabela` | `!regras` | `!pausa`"),
         inline=False
     )
     if ctx.author.guild_permissions.administrator:
         embed.add_field(
-            name="🛠️ Administração & Staff",
-            value="• `!cadastrartime Nome | Nick1#TAG, Nick2#TAG...` - Cadastra equipe & OP.GG\n"
-                  "• `!checkins` - Lista times confirmados\n"
-                  "• `!limparcheckins` - Reseta lista de presenciais\n"
-                  "• `!anunciar #canal Titulo | Texto` - Posta comunicado\n"
-                  "• `!reloadmsgs` - Atualiza frases do `mensagens.json`",
+            name=MSGS.get("ajuda_admin_titulo", "🛠️ Administração & Staff"),
+            value=MSGS.get("ajuda_admin_texto", "• `!cadastrartime` | `!checkins` | `!limparcheckins` | `!anunciar` | `!reloadmsgs`"),
             inline=False
         )
     await ctx.send(embed=embed)
@@ -383,7 +411,8 @@ async def ajuda(ctx):
 @bot.command(name="tabela")
 async def tabela(ctx):
     link = MSGS.get("link_tabela", "https://challonge.com/seu-campeonato")
-    await ctx.send(f"📊 **Chaveamento Oficial:** {link}")
+    msg_tabela = MSGS.get("tabela_mensagem_texto", "📊 **Chaveamento Oficial:** {link_tabela}").format(link_tabela=link)
+    await ctx.send(msg_tabela)
 
 @bot.command(name="regras")
 async def regras(ctx):
@@ -405,8 +434,12 @@ async def pausa(ctx):
 
 @bot.command(name="lado")
 async def lado(ctx):
-    res = random.choice(["BLUE SIDE 🔵 (Lado Azul)", "RED SIDE 🔴 (Lado Vermelho)"])
-    await ctx.send(f"🎲 Sorteio de lado: **{res}**")
+    opcao_azul = MSGS.get("lado_azul_texto", "BLUE SIDE 🔵 (Lado Azul)")
+    opcao_vermelho = MSGS.get("lado_vermelho_texto", "RED SIDE 🔴 (Lado Vermelho)")
+    res = random.choice([opcao_azul, opcao_vermelho])
+    
+    msg_sorteio = MSGS.get("lado_sorteio_texto", "🎲 Sorteio de lado: **{resultado}**").format(resultado=res)
+    await ctx.send(msg_sorteio)
 
 # Executa o servidor web fake junto com o bot
 keep_alive()
