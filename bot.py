@@ -1,4 +1,6 @@
 import os
+import json
+import urllib.parse
 import discord
 from discord.ext import commands
 import random
@@ -6,88 +8,49 @@ from flask import Flask
 from threading import Thread
 
 # ==============================================================================
-# ⚙️ CENTRAL DE CONFIGURAÇÃO E TEXTOS DO BOT (EDITE AQUI)
+# ⚙️ GERENCIADOR DE CONFIGURAÇÃO, MENSAGENS E PERSISTÊNCIA (JSON)
 # ==============================================================================
 
-# 🔑 CREDENCIAIS E APLICAÇÃO (Leitura segura via Variáveis de Ambiente)
+MENSAGENS_FILE = "mensagens.json"
+DATA_FILE = "data.json"
+
+def carregar_mensagens():
+    """Carrega as frases do bot a partir do mensagens.json"""
+    if os.path.exists(MENSAGENS_FILE):
+        try:
+            with open(MENSAGENS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"⚠️ Erro ao carregar {MENSAGENS_FILE}: {e}")
+    return {}
+
+def carregar_dados():
+    """Carrega a base de dados local a partir do data.json"""
+    if os.path.exists(DATA_FILE):
+        try:
+            with open(DATA_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"⚠️ Erro ao carregar {DATA_FILE}: {e}")
+    return {"checkins": [], "rosters": {}}
+
+def salvar_dados(dados):
+    """Salva as informações no data.json para persistência"""
+    try:
+        with open(DATA_FILE, "w", encoding="utf-8") as f:
+            json.dump(dados, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"❌ Erro ao salvar {DATA_FILE}: {e}")
+
+MSGS = carregar_mensagens()
+DADOS_BOT = carregar_dados()
+
 TOKEN = os.getenv("TOKEN", "SEU_TOKEN_AQUI")
 PREFIXO = "!"
-STATUS_JOGO = "🏆 Ultimate Rift | !ajuda"
-
-# 🔗 LINKS E NOMES DOS CANAIS
-LINK_TABELA = "https://challonge.com/seu-campeonato"
-FOTO_BOAS_VINDAS = "https://i.imgur.com/8N7aWkM.png"
-NOME_CANAL_BOAS_VINDAS = "chat-geral-equipes"
-NOME_CANAL_RESULTADOS = "chaveamento-e-tabela"
-
-# 💬 MENSAGEM DE BOAS-VINDAS (ENTRADA)
-BOAS_VINDAS_TITULO = "⚔️ Bem-vindo(a) ao Ultimate Rift, {membro}!"
-BOAS_VINDAS_TEXTO = (
-    "Olá {membro_mention}! Seja bem-vindo ao servidor oficial do campeonato.\n\n"
-    "📌 **Primeiros Passos:**\n"
-    "• Digite `!tabela` para consultar o chaveamento.\n"
-    "• Digite `!regras` para ver o regulamento oficial.\n"
-    "• Digite `!ajuda` para ver os comandos do bot."
-)
-BOAS_VINDAS_RODAPE = "Ultimate Rift • Campeonato de LoL"
-
-# 👋 MENSAGEM DE SAÍDA (DESPEDIDA)
-SAIDA_TITULO = "👋 Um jogador saiu do servidor"
-SAIDA_TEXTO = "**{membro_display}** (`{membro_name}`) deixou o campeonato."
-
-# 📜 REGULAMENTO E PAUSAS
-REGRAS_TITULO = "📜 Regulamento Oficial do Torneio"
-REGRAS_TEXTO = (
-    "**1. Pontualidade:** Tolerância de 10 minutos após o horário marcado.\n"
-    "**2. Pausas:** Cada equipe tem direito a até 10 minutos de pausa por partida.\n"
-    "**3. Comprovação:** O capitão vencedor deve enviar a print do fim do jogo.\n"
-    "**4. Conduta:** Respeito obrigatório com juízes e adversários."
-)
-
-PAUSA_TITULO = "⏱️ Regras de Pausa (Pause)"
-PAUSA_TEXTO = (
-    "• **Tempo Máximo:** 10 minutos acumulados por equipe.\n"
-    "• **Motivos Válidos:** Desconexão técnica ou problema de equipamento.\n"
-    "• **Aviso:** Deve-se informar no chat `/all` o motivo da pausa imediatamente."
-)
-
-# 🗳️ SISTEMA DE VOTAÇÃO E RESULTADOS
-VOTOS_NECESSARIOS = 6
-BOTAO_AZUL_ROTULO = "Vitória Time Azul 🔵"
-BOTAO_VERMELHO_ROTULO = "Vitória Time Vermelho 🔴"
-
-VOTACAO_TITULO = "⚔️ Validação de Resultado da Partida"
-VOTACAO_TEXTO = (
-    "**Lado Azul 🔵:** {time_azul}\n"
-    "**Lado Vermelho 🔴:** {time_vermelho}\n\n"
-    "📌 *Clique no botão do time que venceu para confirmar.*\n"
-    "São necessários **{votos_necessarios} votos** no total para homologar a partida.\n\n"
-    "📊 **Placar da Votação ({total_votos}/{votos_necessarios}):**\n"
-    "• Votos no {time_azul} 🔵: **{votos_azul}**\n"
-    "• Votos no {time_vermelho} 🔴: **{votos_vermelho}**"
-)
-
-RESULTADO_OFICIAL_TITULO = "🏆 RESULTADO OFICIAL DA PARTIDA"
-RESULTADO_OFICIAL_TEXTO = (
-    "👑 **VENCEDOR:** {vencedor} ({lado_vencedor})\n"
-    "💀 **DERROTADO:** {perdedor}\n\n"
-    "✨ *A vitória foi validada pelos próprios jogadores por votação ({total_votos} votos).*"
-)
-
-# 🛡️ ELENCOS DOS TIMES (ROSTERS)
-ROSTERS = {
-    "equipe 1": "• Capitão: Player1\n• Top: Player1\n• JG: Player2\n• Mid: Player3\n• ADC: Player4\n• Sup: Player5",
-    "equipe 2": "• Capitão: Player6\n• Top: Player6\n• JG: Player7\n• Mid: Player8\n• ADC: Player9\n• Sup: Player10",
-    "equipe 3": "Elenco a ser definido pelo capitão.",
-    "equipe 4": "Elenco a ser definido pelo capitão.",
-    "equipe 5": "Elenco a ser definido pelo capitão.",
-    "equipe 6": "Elenco a ser definido pelo capitão.",
-    "equipe 7": "Elenco a ser definido pelo capitão.",
-    "equipe 8": "Elenco a ser definido pelo capitão.",
-}
+STATUS_JOGO = MSGS.get("status_jogo", "🏆 Ultimate Rift | !ajuda")
 
 # ==============================================================================
-# 🌐 SERVIDOR WEB FAKE (KEEP ALIVE PARA RENDER / WEB SERVICE)
+# 🌐 SERVIDOR WEB FAKE (KEEP ALIVE COMPATÍVEL COM RENDER E WEB SERVICE)
 # ==============================================================================
 
 app = Flask('')
@@ -97,14 +60,39 @@ def home():
     return "Bot Ultimate Rift rodando 24/7!"
 
 def run_web():
-    app.run(host='0.0.0.0', port=8080)
+    # Render injeta a variável PORT. Usa 8080 como fallback local.
+    port = int(os.getenv("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
 
 def keep_alive():
     t = Thread(target=run_web)
+    t.daemon = True
     t.start()
 
 # ==============================================================================
-# 🚨 LÓGICA DO BOT
+# 🛠️ FUNÇÕES AUXILIARES (OP.GG MULTI-SEARCH)
+# ==============================================================================
+
+def gerar_opgg_multisearch(nicks_str_ou_lista, regiao="br"):
+    """
+    Gera o link de Multi-Search do OP.GG para uma lista de Nick#TAG ou nomes de invocadores.
+    Exemplo: Player1#BR1, Player2#BR1 -> https://www.op.gg/multisearch/br?summoners=Player1%23BR1%2CPlayer2%23BR1
+    """
+    if isinstance(nicks_str_ou_lista, str):
+        # Separa por vírgula ou quebra de linha
+        nicks = [n.strip() for n in nicks_str_ou_lista.replace("\n", ",").split(",") if n.strip()]
+    else:
+        nicks = [n.strip() for n in nicks_str_ou_lista if n.strip()]
+
+    if not nicks:
+        return None
+
+    encoded_nicks = [urllib.parse.quote(nick) for nick in nicks]
+    summoners_param = "%2C".join(encoded_nicks)
+    return f"https://www.op.gg/multisearch/{regiao}?summoners={summoners_param}"
+
+# ==============================================================================
+# 🚨 LÓGICA E EVENTOS DO BOT
 # ==============================================================================
 
 intents = discord.Intents.default()
@@ -112,7 +100,6 @@ intents.message_content = True
 intents.members = True
 
 bot = commands.Bot(command_prefix=PREFIXO, intents=intents, help_command=None)
-checkins_realizados = set()
 
 @bot.event
 async def on_ready():
@@ -123,26 +110,29 @@ async def on_ready():
 
 @bot.event
 async def on_member_join(member):
-    canal = discord.utils.get(member.guild.text_channels, name=NOME_CANAL_BOAS_VINDAS)
+    canal_nome = MSGS.get("nome_canal_boas_vindas", "chat-geral-equipes")
+    canal = discord.utils.get(member.guild.text_channels, name=canal_nome)
     if canal:
         embed = discord.Embed(
-            title=BOAS_VINDAS_TITULO.format(membro=member.display_name),
-            description=BOAS_VINDAS_TEXTO.format(membro_mention=member.mention),
+            title=MSGS.get("boas_vindas_titulo", "").format(membro=member.display_name),
+            description=MSGS.get("boas_vindas_texto", "").format(membro_mention=member.mention),
             color=discord.Color.gold()
         )
         embed.set_thumbnail(url=member.display_avatar.url)
-        if FOTO_BOAS_VINDAS:
-            embed.set_image(url=FOTO_BOAS_VINDAS)
-        embed.set_footer(text=BOAS_VINDAS_RODAPE)
+        foto = MSGS.get("foto_boas_vindas")
+        if foto:
+            embed.set_image(url=foto)
+        embed.set_footer(text=MSGS.get("boas_vindas_rodape", "Ultimate Rift"))
         await canal.send(content=f"👋 Bem-vindo(a) {member.mention}!", embed=embed)
 
 @bot.event
 async def on_member_remove(member):
-    canal = discord.utils.get(member.guild.text_channels, name=NOME_CANAL_BOAS_VINDAS)
+    canal_nome = MSGS.get("nome_canal_boas_vindas", "chat-geral-equipes")
+    canal = discord.utils.get(member.guild.text_channels, name=canal_nome)
     if canal:
         embed = discord.Embed(
-            title=SAIDA_TITULO,
-            description=SAIDA_TEXTO.format(membro_display=member.display_name, membro_name=member.name),
+            title=MSGS.get("saida_titulo", "👋 Jogador Saiu"),
+            description=MSGS.get("saida_texto", "").format(membro_display=member.display_name, membro_name=member.name),
             color=discord.Color.red()
         )
         embed.set_thumbnail(url=member.display_avatar.url)
@@ -158,26 +148,28 @@ class VotacaoResultadoView(discord.ui.View):
         self.votos_azul = set()
         self.votos_vermelho = set()
 
-        self.votar_azul.label = BOTAO_AZUL_ROTULO
-        self.votar_vermelho.label = BOTAO_VERMELHO_ROTULO
+        self.votar_azul.label = MSGS.get("botao_azul_rotulo", "Vitória Time Azul 🔵")
+        self.votar_vermelho.label = MSGS.get("botao_vermelho_rotulo", "Vitória Time Vermelho 🔴")
 
     def atualizar_embed(self) -> discord.Embed:
         total = len(self.votos_azul) + len(self.votos_vermelho)
-        texto = VOTACAO_TEXTO.format(
+        votos_req = MSGS.get("votos_necessarios", 6)
+        texto = MSGS.get("votacao_texto", "").format(
             time_azul=self.time_azul,
             time_vermelho=self.time_vermelho,
-            votos_necessarios=VOTOS_NECESSARIOS,
+            votos_necessarios=votos_req,
             total_votos=total,
             votos_azul=len(self.votos_azul),
             votos_vermelho=len(self.votos_vermelho)
         )
-        embed = discord.Embed(title=VOTACAO_TITULO, description=texto, color=discord.Color.gold())
+        embed = discord.Embed(title=MSGS.get("votacao_titulo", "Validação de Resultado"), description=texto, color=discord.Color.gold())
         embed.set_footer(text="Ultimate Rift • Votação Oficial")
         return embed
 
     async def verificar_fim(self, interaction: discord.Interaction):
         total = len(self.votos_azul) + len(self.votos_vermelho)
-        if total >= VOTOS_NECESSARIOS:
+        votos_req = MSGS.get("votos_necessarios", 6)
+        if total >= votos_req:
             for item in self.children:
                 item.disabled = True
 
@@ -191,14 +183,15 @@ class VotacaoResultadoView(discord.ui.View):
             embed_fim.color = discord.Color.green()
             await interaction.response.edit_message(embed=embed_fim, view=self)
 
-            canal_res = discord.utils.get(interaction.guild.text_channels, name=NOME_CANAL_RESULTADOS) or interaction.channel
-            texto_oficial = RESULTADO_OFICIAL_TEXTO.format(
+            canal_nome = MSGS.get("nome_canal_resultados", "chaveamento-e-tabela")
+            canal_res = discord.utils.get(interaction.guild.text_channels, name=canal_nome) or interaction.channel
+            texto_oficial = MSGS.get("resultado_oficial_texto", "").format(
                 vencedor=vencedor,
                 lado_vencedor=lado,
                 perdedor=perdedor,
                 total_votos=total
             )
-            embed_oficial = discord.Embed(title=RESULTADO_OFICIAL_TITULO, description=texto_oficial, color=discord.Color.green())
+            embed_oficial = discord.Embed(title=MSGS.get("resultado_oficial_titulo", "RESULTADO OFICIAL"), description=texto_oficial, color=discord.Color.green())
             embed_oficial.set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else None)
             await canal_res.send(embed=embed_oficial)
         else:
@@ -221,34 +214,119 @@ async def iniciar_resultado(ctx, time_azul: str, time_vermelho: str):
     view = VotacaoResultadoView(time_azul=time_azul, time_vermelho=time_vermelho)
     await ctx.send(embed=view.atualizar_embed(), view=view)
 
-# --- COMANDOS UTILITÁRIOS E INFORMATIVOS ---
+# --- SISTEMA DE CADASTRO E OP.GG DE EQUIPES ---
+
+@bot.command(name="cadastrartime", aliases=["cadastrar_time", "addtime"])
+@commands.has_permissions(administrator=True)
+async def cadastrar_time(ctx, *, conteudo: str):
+    """
+    Sintaxe: !cadastrartime Nome do Time | Nick1#BR1, Nick2#BR1, Nick3#BR1, Nick4#BR1, Nick5#BR1
+    """
+    if "|" not in conteudo:
+        await ctx.send("❌ Uso correto: `!cadastrartime Nome do Time | Nick1#BR1, Nick2#BR1, Nick3#BR1, Nick4#BR1, Nick5#BR1`")
+        return
+
+    nome_time_raw, nicks_raw = conteudo.split("|", 1)
+    nome_time = nome_time_raw.strip()
+    key_time = nome_time.lower()
+
+    nicks_lista = [n.strip() for n in nicks_raw.split(",") if n.strip()]
+    opgg_link = gerar_opgg_multisearch(nicks_lista)
+
+    DADOS_BOT["rosters"][key_time] = {
+        "nome": nome_time,
+        "jogadores": nicks_lista,
+        "opgg_link": opgg_link
+    }
+    salvar_dados(DADOS_BOT)
+
+    embed = discord.Embed(title=f"✅ Equipe Cadastrada: {nome_time}", color=discord.Color.green())
+    jogadores_fmt = "\n".join([f"• {j}" for j in nicks_lista])
+    embed.add_field(name="👥 Elenco", value=jogadores_fmt if jogadores_fmt else "Nenhum jogador informado", inline=False)
+    if opgg_link:
+        embed.add_field(name="🔍 OP.GG Multi-Search", value=f"[👉 Clique aqui para abrir a análise da equipe no OP.GG]({opgg_link})", inline=False)
+
+    await ctx.send(embed=embed)
+
+@bot.command(name="time", aliases=["elenco", "roster"])
+async def consultar_time(ctx, *, nome_time: str):
+    key_time = nome_time.strip().lower()
+
+    if key_time in DADOS_BOT["rosters"]:
+        info = DADOS_BOT["rosters"][key_time]
+        nome = info.get("nome", nome_time.upper())
+        jogadores = info.get("jogadores", [])
+        opgg_link = info.get("opgg_link") or gerar_opgg_multisearch(jogadores)
+
+        embed = discord.Embed(title=f"🛡️ Elenco • {nome}", color=discord.Color.blue())
+        if jogadores:
+            jogadores_fmt = "\n".join([f"• {j}" for j in jogadores])
+            embed.add_field(name="👥 Integrantes / Nicks", value=jogadores_fmt, inline=False)
+        else:
+            embed.description = "Elenco a ser definido pelo capitão."
+
+        if opgg_link:
+            embed.add_field(name="🔍 OP.GG Multi-Search", value=f"[👉 Abrir Multi-Search da Equipe]({opgg_link})", inline=False)
+
+        await ctx.send(embed=embed)
+    else:
+        await ctx.send(f"❌ Time `{nome_time}` não encontrado no sistema. Admins podem cadastrar via `!cadastrartime Nome | Nick1#TAG, Nick2#TAG`.")
+
+# --- CHECK-IN PERSISTENTE ---
 
 @bot.command(name="checkin")
 async def checkin(ctx, *, nome_time: str):
     nome_limpo = nome_time.strip().lower()
-    if nome_limpo in checkins_realizados:
+    if nome_limpo in DADOS_BOT["checkins"]:
         await ctx.send(f"⚠️ O **{nome_time.upper()}** já realizou o check-in!")
         return
-    checkins_realizados.add(nome_limpo)
+
+    DADOS_BOT["checkins"].append(nome_limpo)
+    salvar_dados(DADOS_BOT)
     await ctx.send(f"✅ Check-in confirmado para a equipe **{nome_time.upper()}**!")
 
 @bot.command(name="checkins")
 @commands.has_permissions(administrator=True)
 async def ver_checkins(ctx):
-    if not checkins_realizados:
+    checkins = DADOS_BOT.get("checkins", [])
+    if not checkins:
         await ctx.send("📋 Nenhum time fez check-in ainda.")
         return
-    lista = "\n".join([f"• {t.title()}" for t in checkins_realizados])
+    lista = "\n".join([f"• {t.title()}" for t in checkins])
     await ctx.send(f"📋 **Times com Check-in Realizado:**\n{lista}")
 
-@bot.command(name="time", aliases=["elenco", "roster"])
-async def consultar_time(ctx, *, nome_time: str):
-    nome_limpo = nome_time.strip().lower()
-    if nome_limpo in ROSTERS:
-        embed = discord.Embed(title=f"🛡️ Elenco • {nome_time.upper()}", description=ROSTERS[nome_limpo], color=discord.Color.blue())
-        await ctx.send(embed=embed)
-    else:
-        await ctx.send(f"❌ Time `{nome_time}` não encontrado no sistema.")
+@bot.command(name="limparcheckins")
+@commands.has_permissions(administrator=True)
+async def limpar_checkins(ctx):
+    DADOS_BOT["checkins"] = []
+    salvar_dados(DADOS_BOT)
+    await ctx.send("🧹 Lista de check-ins zerada com sucesso!")
+
+# --- SISTEMA DE CHAMADOS / JUIZ ---
+
+@bot.command(name="juiz", aliases=["suporte", "ticket"])
+async def chamar_juiz(ctx, *, motivo: str = "Sem motivo especificado"):
+    canal_suporte_nome = MSGS.get("nome_canal_suporte", "chamados-juiz")
+    canal_suporte = discord.utils.get(ctx.guild.text_channels, name=canal_suporte_nome) or ctx.channel
+
+    texto_chamado = MSGS.get("juiz_solicitado_texto", "").format(
+        autor_mention=ctx.author.mention,
+        autor_name=ctx.author.name,
+        canal_mention=ctx.channel.mention,
+        motivo=motivo
+    )
+    embed = discord.Embed(
+        title=MSGS.get("juiz_solicitado_titulo", "🚨 Chamado de Suporte / Juiz Solicitado"),
+        description=texto_chamado,
+        color=discord.Color.red()
+    )
+    embed.set_footer(text=f"Solicitado por {ctx.author.display_name}")
+
+    msg_suporte = await canal_suporte.send(content="🔔 @here **Atenção Juízes/Staff!** Novo chamado aberto:", embed=embed)
+    if canal_suporte != ctx.channel:
+        await ctx.send(f"✅ Chamado enviado para a arbitragem! Um juiz atenderá em breve no canal {canal_suporte.mention}.")
+
+# --- COMANDOS DE INFORMAÇÕES E RECARGA ---
 
 @bot.command(name="anunciar")
 @commands.has_permissions(administrator=True)
@@ -262,35 +340,67 @@ async def anunciar(ctx, canal: discord.TextChannel, *, conteudo: str):
     except Exception:
         await ctx.send("❌ Uso correto: `!anunciar #canal Titulo | Mensagem`")
 
+@bot.command(name="reloadmsgs")
+@commands.has_permissions(administrator=True)
+async def recarregar_mensagens(ctx):
+    global MSGS, STATUS_JOGO
+    MSGS = carregar_mensagens()
+    STATUS_JOGO = MSGS.get("status_jogo", "🏆 Ultimate Rift | !ajuda")
+    await bot.change_presence(activity=discord.Game(name=STATUS_JOGO))
+    await ctx.send("🔄 Mensagens do `mensagens.json` recarregadas com sucesso!")
+
 @bot.command(name="ajuda", aliases=["help"])
 async def ajuda(ctx):
     embed = discord.Embed(title="🤖 Comandos da Arena • Ultimate Rift", color=discord.Color.purple())
     embed.add_field(
         name="⚔️ Gestão de Partidas",
-        value="• `!resultado <TimeAzul> <TimeVermelho>` - Inicia votação de resultado\n• `!checkin <Nome do Time>` - Confirma presença\n• `!time <Nome do Time>` - Ver integrantes\n• `!lado` - Sorteio de Blue/Red Side",
+        value="• `!resultado <TimeAzul> <TimeVermelho>` - Inicia votação de resultado\n"
+              "• `!checkin <Nome do Time>` - Confirms presença\n"
+              "• `!time <Nome do Time>` - Ver integrantes e link do OP.GG\n"
+              "• `!lado` - Sorteio de Blue/Red Side\n"
+              "• `!juiz <motivo>` - Solicita atendimento de um juiz/staff",
         inline=False
     )
     embed.add_field(
         name="📊 Informações",
-        value="• `!tabela` - Link do chaveamento\n• `!regras` - Regulamento\n• `!pausa` - Regras de pause",
+        value=f"• `!tabela` - Link do chaveamento\n"
+              f"• `!regras` - Regulamento oficial\n"
+              f"• `!pausa` - Regras de pause",
         inline=False
     )
     if ctx.author.guild_permissions.administrator:
-        embed.add_field(name="🛠️ Staff", value="• `!checkins` - Lista de presenciais\n• `!anunciar #canal Titulo | Texto` - Envia aviso", inline=False)
+        embed.add_field(
+            name="🛠️ Administração & Staff",
+            value="• `!cadastrartime Nome | Nick1#TAG, Nick2#TAG...` - Cadastra equipe & OP.GG\n"
+                  "• `!checkins` - Lista times confirmados\n"
+                  "• `!limparcheckins` - Reseta lista de presenciais\n"
+                  "• `!anunciar #canal Titulo | Texto` - Posta comunicado\n"
+                  "• `!reloadmsgs` - Atualiza frases do `mensagens.json`",
+            inline=False
+        )
     await ctx.send(embed=embed)
 
 @bot.command(name="tabela")
 async def tabela(ctx):
-    await ctx.send(f"📊 **Chaveamento Oficial:** {LINK_TABELA}")
+    link = MSGS.get("link_tabela", "https://challonge.com/seu-campeonato")
+    await ctx.send(f"📊 **Chaveamento Oficial:** {link}")
 
 @bot.command(name="regras")
 async def regras(ctx):
-    embed = discord.Embed(title=REGRAS_TITULO, description=REGRAS_TEXTO, color=discord.Color.red())
+    embed = discord.Embed(
+        title=MSGS.get("regras_titulo", "📜 Regulamento"),
+        description=MSGS.get("regras_texto", ""),
+        color=discord.Color.red()
+    )
     await ctx.send(embed=embed)
 
 @bot.command(name="pausa")
 async def pausa(ctx):
-    embed = discord.Embed(title=PAUSA_TITULO, description=PAUSA_TEXTO, color=discord.Color.orange())
+    embed = discord.Embed(
+        title=MSGS.get("pausa_titulo", "⏱️ Regras de Pausa"),
+        description=MSGS.get("pausa_texto", ""),
+        color=discord.Color.orange()
+    )
     await ctx.send(embed=embed)
 
 @bot.command(name="lado")
