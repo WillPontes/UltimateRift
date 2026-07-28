@@ -8,7 +8,7 @@
 
   "ajuda_titulo": "🤖 Comandos da Arena • Ultimate Rift",
   "ajuda_texto": "⚔️ **Gestão de Partidas:**\n• `!resultado <TimeAzul> <TimeVermelho>` - Inicia votação de resultado da partida\n• `!checkin <Nome do Time>` - Confirma a presença da equipe\n• `!time <Nome do Time>` - Exibe o elenco e o link do OP.GG da equipe\n• `!lado` - Sorteia o Blue Side ou Red Side\n• `!juiz <motivo>` - Solicita o atendimento de um juiz/staff\n\n📊 **Informações:**\n• `!tabela` - Consulta o link do chaveamento oficial\n• `!regras` - Exibe o regulamento do campeonato\n• `!pausa` - Exibe as regras de pause da partida",
-  "ajuda_texto_admin": "🛠️ **Administração & Staff:**\n• `!cadastrartime Nome | Nick1#TAG, Nick2#TAG...` - Cadastra a equipe e gera o link do OP.GG\n• `!checkins` - Exibe a lista de times que fizeram check-in\n• `!limparcheckins` - Zera a lista de presença dos times\n• `!anunciar #canal Titulo | Texto` - Posta um anúncio formatado no canal\n• `!reloadmsgs` - Recarrega as frases do mensagens.json em tempo real",
+  "ajuda_texto_admin": "🛠️ **Administração & Staff:**\n• `!cadastrartime 'Nome do time' | Nick1#TAG, Nick2#TAG...` - Cadastra a equipe e gera o link do OP.GG\n• `!checkins` - Exibe a lista de times que fizeram check-in\n• `!limparcheckins` - Zera a lista de presença dos times\n• `!anunciar #canal Titulo | Texto` - Posta um anúncio formatado no canal\n• `!reloadmsgs` - Recarrega as frases do mensagens.json em tempo real",
   "ajuda_rodape": "Ultimate Rift • Central de Ajuda",
 
   "boas_vindas_titulo": "⚔️ Bem-vindo(a) ao Ultimate Rift, {membro}!",
