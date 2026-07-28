@@ -388,24 +388,39 @@ async def recarregar_mensagens(ctx):
 
 @bot.command(name="ajuda", aliases=["help"])
 async def ajuda(ctx):
-    embed = discord.Embed(title=MSGS.get("ajuda_titulo", "🤖 Comandos da Arena • Ultimate Rift"), color=discord.Color.purple())
+    titulo = MSGS.get("ajuda_titulo", "🤖 Comandos da Arena • Ultimate Rift")
+    embed = discord.Embed(title=titulo, color=discord.Color.purple())
     
-    embed.add_field(
-        name=MSGS.get("ajuda_partidas_titulo", "⚔️ Gestão de Partidas"),
-        value=MSGS.get("ajuda_partidas_texto", "• `!resultado` | `!checkin` | `!time` | `!lado` | `!juiz`"),
-        inline=False
-    )
-    embed.add_field(
-        name=MSGS.get("ajuda_info_titulo", "📊 Informações"),
-        value=MSGS.get("ajuda_info_texto", "• `!tabela` | `!regras` | `!pausa`"),
-        inline=False
-    )
-    if ctx.author.guild_permissions.administrator:
+    texto_geral = MSGS.get("ajuda_texto")
+    if texto_geral:
+        embed.description = texto_geral
+    else:
+        # Suporte legado caso prefira os campos divididos
         embed.add_field(
-            name=MSGS.get("ajuda_admin_titulo", "🛠️ Administração & Staff"),
-            value=MSGS.get("ajuda_admin_texto", "• `!cadastrartime` | `!checkins` | `!limparcheckins` | `!anunciar` | `!reloadmsgs`"),
+            name=MSGS.get("ajuda_partidas_titulo", "⚔️ Gestão de Partidas"),
+            value=MSGS.get("ajuda_partidas_texto", "• `!resultado` | `!checkin` | `!time` | `!lado` | `!juiz`"),
             inline=False
         )
+        embed.add_field(
+            name=MSGS.get("ajuda_info_titulo", "📊 Informações"),
+            value=MSGS.get("ajuda_info_texto", "• `!tabela` | `!regras` | `!pausa`"),
+            inline=False
+        )
+
+    if ctx.author.guild_permissions.administrator:
+        texto_admin = MSGS.get("ajuda_texto_admin")
+        if texto_admin:
+            embed.add_field(name="​", value=texto_admin, inline=False)
+        else:
+            embed.add_field(
+                name=MSGS.get("ajuda_admin_titulo", "🛠️ Administração & Staff"),
+                value=MSGS.get("ajuda_admin_texto", "• `!cadastrartime` | `!checkins` | `!limparcheckins` | `!anunciar` | `!reloadmsgs`"),
+                inline=False
+            )
+
+    rodape = MSGS.get("ajuda_rodape", "Ultimate Rift • Central de Ajuda")
+    embed.set_footer(text=rodape)
+
     await ctx.send(embed=embed)
 
 @bot.command(name="tabela")
